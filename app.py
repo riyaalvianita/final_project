@@ -6,16 +6,17 @@ import joblib
 import os
 
 # Memuat encoder
-encoder = joblib.load('encoded_df2.pkl')
+df_encoded = joblib.load('encoded_df.pkl')
+scaler = joblib.load('scaler.pkl')
 
 def main():
     st.subheader('Welcome to ML Section')
 
     song_duration_ms = st.number_input('Song Durations (ms)',0,500000)
-    accousticness = st.number_input('accousticness',format="%.6f" )
+    acousticness = st.number_input('acousticness',format="%.6f" )
     danceability = st.number_input('danceability',format="%.3f" )
     energy = st.number_input('energy',format="%.3f" )
-    instrumentals = st.number_input('instrumentals',format="%.6f" )
+    instrumentalness = st.number_input('instrumentalness',format="%.6f" )
     key = st.selectbox('Key', [1,2,3,4,5,6,7,8,9,10])
     liveness = st.number_input('liveness',format="%.4f" )
     loudness = st.number_input('loudness',format="%.3f" )
@@ -23,16 +24,17 @@ def main():
     speechiness = st.number_input('speechiness',format="%.4f" )
     tempo = st.number_input('tempo',format="%.3f" )
     time_signature = st.selectbox('time signature', [0,1,3,4,5])
-    av = st.number_input('audio valence',format="%.3f" )
+    audio_valence = st.number_input('audio_valence',format="%.3f" )
 
     
 
     with st.expander("Your Selected Options"):
         result = {
            'song_duration_ms' : song_duration_ms ,
-           'accousticness' : accousticness,
+           'acousticness' : acousticness,
            'danceability' : danceability,
-           'instrumentals' : instrumentals,
+           'energy' : energy,
+           'instrumentalness' : instrumentalness,
            'key' : key,
            'liveness' : liveness,
            'loudness' : loudness,
@@ -40,7 +42,7 @@ def main():
            'speechiness' : speechiness,
            'tempo' : tempo,
            'time_signature' : time_signature,
-           'audio valence' : av,
+           'audio_valence' : audio_valence,
 
         }
         st.write(result)
@@ -49,19 +51,23 @@ def main():
     # Convert input to DataFrame for encoding
     input_df = pd.DataFrame([result])
 
-    # Perform the same encoding as training
+   # Perform the same encoding as training
     input_encoded = pd.get_dummies(input_df, columns=['audio_mode', 'key', 'time_signature'], drop_first=False)
     
-    # Align the input with the encoder
-    input_encoded = input_encoded.reindex(columns=encoder.columns, fill_value=0)
+    # Align the input with the encoder columns
+    input_encoded = input_encoded.reindex(columns=df_encoded.columns, fill_value=0)
 
     st.subheader('Encoded Input DataFrame:')
     st.write(input_encoded)
-    single_array = np.array(input_encoded).reshape(1,-1)
 
+    # Scale the encoded input data
+    input_scaled = scaler.transform(input_encoded)
+
+    st.subheader('Scaled Input DataFrame:')
+    st.write(pd.DataFrame(input_scaled, columns=df_encoded.columns))
 
     model = joblib.load(open(os.path.join('model_classifier.pkl'), 'rb'))
-    prediction = model.predict(single_array)
+    prediction = model.predict(input_scaled)
 
     # Display prediction result
     st.subheader('Prediction result:')
